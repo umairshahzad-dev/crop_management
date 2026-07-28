@@ -1,0 +1,154 @@
+<%- include('partials/head') %>
+    <%- include('partials/sidebar') %>
+    <main class="flex-grow-1 p-4">
+        <%- include('partials/navbar') %>
+        <div class="container-fluid py-4">
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <h3 class="fw-bold mb-3">District Explorer</h3>
+                    <form class="row g-3" method="get">
+                        <div class="col-md-8">
+                            <label class="form-label">Search District</label>
+                            <input class="form-control" list="districtList" name="district"
+                                   placeholder="Type a district name" value="<%= districtName %>">
+                            <datalist id="districtList">
+                                <% for (const opt of districtOptions) { %>
+                                    <option value="<%= opt %>">
+                                <% } %>
+                            </datalist>
+                        </div>
+                        <div class="col-md-4 d-flex align-items-end">
+                            <button class="btn btn-primary w-100" type="submit">
+                                <i class="bi bi-search me-1"></i>Load District
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <% if (selectedDistrict) { %>
+                <div class="row g-4">
+                    <div class="col-lg-8">
+                        <div class="card shadow-sm detail-card mb-4">
+                            <div class="card-body">
+                                <div class="d-flex align-items-start gap-3 mb-3 flex-wrap">
+                                    <div class="flex-shrink-0">
+                                        <% if (imagePath) { %>
+                                            <img src="<%= imagePath %>" alt="Map of <%= selectedDistrict %>"
+                                                 class="rounded border" style="width:120px;height:90px;object-fit:cover;">
+                                        <% } else { %>
+                                            <div class="rounded border bg-light d-flex align-items-center justify-content-center text-muted"
+                                                 style="width:120px;height:90px;">
+                                                <i class="bi bi-map fs-2"></i>
+                                            </div>
+                                        <% } %>
+                                    </div>
+                                    <div>
+                                        <h4 class="fw-bold mb-1"><%= selectedDistrict %></h4>
+                                        <span class="badge bg-success bg-opacity-10 text-success">
+                                            <i class="bi bi-geo-alt-fill me-1"></i><%= provinceName %>
+                                        </span>
+                                        <% if (districtId) { %>
+                                            <span class="badge bg-secondary bg-opacity-10 text-secondary ms-1">ID: <%= districtId %></span>
+                                        <% } %>
+                                    </div>
+                                </div>
+
+                                <div class="row g-3">
+                                    <% const details = {
+                                        'Province': provinceName,
+                                        'Soil Type': dataset?.soil_type_sand_composition || '—',
+                                        'Irrigation': dataset?.irrigation_type || '—',
+                                        'Climate Zone': dataset?.climate_zone || '—',
+                                        'Land Area': (dataset?.total_land_area_km2 || '—') + ' km²',
+                                    }; %>
+                                    <% for (const [lbl, val] of Object.entries(details)) { %>
+                                        <div class="col-md-6">
+                                            <div class="p-3 rounded bg-light">
+                                                <div class="text-muted small"><%= lbl %></div>
+                                                <div class="fw-semibold"><%= String(val) %></div>
+                                            </div>
+                                        </div>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title">Crop Recommendations</h5>
+                                <% if (!recommendations.length) { %>
+                                    <p class="text-muted mb-0">No crop recommendations found for this district.</p>
+                                <% } else { %>
+                                    <div class="table-responsive">
+                                        <table class="table table-sm table-hover">
+                                            <thead class="table-light">
+                                                <tr>
+                                                    <th>Month</th>
+                                                    <th>Season</th>
+                                                    <th>Recommended Crops</th>
+                                                    <th>Priority</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <% for (const row of recommendations) { %>
+                                                    <tr>
+                                                        <td><%= row.month || '' %></td>
+                                                        <td><%= row.season || '' %></td>
+                                                        <td><%= row.recommended_crops || '' %></td>
+                                                        <td><%= row.crop_priority || '' %></td>
+                                                    </tr>
+                                                <% } %>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-4">
+                        <div class="card shadow-sm mb-4">
+                            <div class="card-body">
+                                <h5 class="card-title">District Map</h5>
+                                <% if (imagePath) { %>
+                                    <img src="<%= imagePath %>" alt="Map of <%= selectedDistrict %>"
+                                         class="img-fluid rounded border w-100">
+                                <% } else { %>
+                                    <div class="alert alert-secondary d-flex align-items-center gap-2 mb-0">
+                                        <i class="bi bi-exclamation-circle"></i>
+                                        No map image available for this district.
+                                    </div>
+                                <% } %>
+                            </div>
+                        </div>
+
+                        <% if (dataset && Object.keys(dataset).length) { %>
+                        <div class="card shadow-sm">
+                            <div class="card-body">
+                                <h5 class="card-title">District Dataset</h5>
+                                <dl class="row mb-0">
+                                    <% for (const [key, value] of Object.entries(dataset)) { %>
+                                        <dt class="col-6 small text-muted"><%= key %></dt>
+                                        <dd class="col-6 small"><%= formatValue(value) %></dd>
+                                    <% } %>
+                                </dl>
+                            </div>
+                        </div>
+                        <% } %>
+                    </div>
+                </div>
+            <% } else { %>
+                <div class="alert alert-secondary d-flex align-items-center gap-2">
+                    <i class="bi bi-info-circle"></i>
+                    Select a district above to view its details, crop recommendations, and map.
+                </div>
+            <% } %>
+
+        </div>
+        <%- include('partials/footer') %>
+    </main>
+</div>
+</body>
+</html>

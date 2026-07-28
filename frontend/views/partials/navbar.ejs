@@ -1,0 +1,32 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold" href="/">
+            <i class="bi bi-grid-3x3-gap-fill me-2"></i>Crop Recommendation Admin
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#topNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="topNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item">
+                    <a class="nav-link <%= currentPath === '/' ? 'active' : '' %>" href="/">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <%= currentPath === '/district-details' ? 'active' : '' %>" href="/district-details">District Explorer</a>
+                </li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Manage Tables</a>
+                    <ul class="dropdown-menu">
+                        <% for (const t of tables) { %>
+                            <li>
+                                <a class="dropdown-item" href="/crud?table=<%= encodeURIComponent(t) %>">
+                                    <%= t.replace(/_/g,' ').replace(/\w\S*/g, w => w[0].toUpperCase()+w.slice(1).toLowerCase()) %>
+                                </a>
+                            </li>
+                        <% } %>
+                    </ul>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

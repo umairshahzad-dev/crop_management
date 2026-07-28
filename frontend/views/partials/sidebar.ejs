@@ -1,0 +1,29 @@
+<aside class="sidebar shadow-sm">
+    <div class="p-3 border-bottom">
+        <h5 class="fw-bold mb-0">Navigation</h5>
+    </div>
+    <ul class="nav flex-column p-3">
+        <li class="nav-item">
+            <a class="nav-link <%= currentPath === '/' ? 'active' : '' %>" href="/">
+                <i class="bi bi-speedometer2 me-2"></i>Dashboard
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link <%= currentPath === '/district-details' ? 'active' : '' %>" href="/district-details">
+                <i class="bi bi-geo-alt-fill me-2"></i>District Explorer
+            </a>
+        </li>
+        <li class="nav-item mt-3">
+            <div class="text-uppercase small text-muted fw-bold px-1">Dynamic CRUD Modules</div>
+        </li>
+        <% for (const t of tables) { %>
+            <li class="nav-item">
+                <a class="nav-link <%= currentTable === t ? 'active' : '' %>"
+                   href="/crud?table=<%= encodeURIComponent(t) %>">
+                    <i class="bi bi-table me-2"></i>
+                    <%= t.replace(/_/g,' ').replace(/\w\S*/g, w => w[0].toUpperCase()+w.slice(1).toLowerCase()) %>
+                </a>
+            </li>
+        <% } %>
+    </ul>
+</aside>
