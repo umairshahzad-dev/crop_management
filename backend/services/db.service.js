@@ -1,9 +1,5 @@
 const db = require('../../database/connection');
 
-// ---------------------------------------------------------------------------
-// Identifier helpers (prevent SQL injection via table/column names)
-// ---------------------------------------------------------------------------
-
 function sanitizeIdentifier(name) {
     return /^[a-zA-Z0-9_]+$/.test(name) ? name : '';
 }
@@ -50,8 +46,8 @@ async function getPrimaryKey(table) {
         JOIN information_schema.key_column_usage kcu
           ON tc.constraint_name = kcu.constraint_name
          AND tc.table_schema    = kcu.table_schema
-        WHERE tc.table_schema   = 'public'
-          AND tc.table_name     = $1
+        WHERE tc.table_schema    = 'public'
+          AND tc.table_name      = $1
           AND tc.constraint_type = 'PRIMARY KEY'
         LIMIT 1`, [table]);
     return rows[0]?.column_name || null;
@@ -117,7 +113,7 @@ async function getSummaryStats() {
 }
 
 // ---------------------------------------------------------------------------
-// CRUD operations
+// CRUD — read
 // ---------------------------------------------------------------------------
 
 async function getTableRows(table, page = 1, perPage = 10, search = '', sort = '', direction = 'ASC') {
@@ -133,7 +129,7 @@ async function getTableRows(table, page = 1, perPage = 10, search = '', sort = '
     if (search) {
         const terms = [];
         for (const col of columns) {
-            if (['integer','numeric','bigint','smallint'].includes(col.dataType)) continue;
+            if (['integer', 'numeric', 'bigint', 'smallint'].includes(col.dataType)) continue;
             params.push(`%${search}%`);
             terms.push(`${quoteIdentifier(col.name)} ILIKE $${params.length}`);
         }
@@ -149,41 +145,62 @@ async function getTableRows(table, page = 1, perPage = 10, search = '', sort = '
     const where  = whereParts.length ? `WHERE ${whereParts.join(' AND ')}` : '';
     const select = pk ? 'SELECT *' : 'SELECT *, ctid::text AS __row_id';
 
-    const { rows: cr } = await db.query(`SELECT COUNT(*) AS total FROM ${quoteIdentifier(table)} ${where}`, params);
+    const { rows: cr } = await db.query(
+        `SELECT COUNT(*) AS total FROM ${quoteIdentifier(table)} ${where}`,
+        params
+    );
     const total = parseInt(cr[0].total, 10);
 
+    // Add LIMIT and OFFSET as the last two params
     params.push(perPage, (page - 1) * perPage);
+    const limitIdx  = params.length - 1;
+    const offsetIdx = params.length;
+
     const { rows } = await db.query(
-        `${select} FROM ${quoteIdentifier(table)} ${where} ORDER BY ${orderCol} ${direction} LIMIT $${params.length - 1} OFFSET $${params.length}`,
+        `${select} FROM ${quoteIdentifier(table)} ${where} ORDER BY ${orderCol} ${direction} LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
         params
     );
     return { rows, total, columns, primaryKey: pk };
 }
 
 async function getRowById(table, id) {
-    table     = sanitizeIdentifier(table);
-    const pk  = await getPrimaryKey(table);
+    table    = sanitizeIdentifier(table);
+    const pk = await getPrimaryKey(table);
     if (!table || !pk) return null;
     const { rows } = await db.query(
-        `SELECT * FROM ${quoteIdentifier(table)} WHERE ${quoteIdentifier(pk)} = $1`, [id]
+        `SELECT * FROM ${quoteIdentifier(table)} WHERE ${quoteIdentifier(pk)} = $1`,
+        [id]
     );
     return rows[0] || null;
 }
 
+// ---------------------------------------------------------------------------
+// CRUD — write
+// ---------------------------------------------------------------------------
+
 async function saveRow(table, data) {
     table = sanitizeIdentifier(table);
     if (!table) return false;
-    const columns    = await getTableColumns(table);
-    const pk         = await getPrimaryKey(table);
-    const colNames   = [], placeholders = [], params = [];
+
+    const columns     = await getTableColumns(table);
+    const pk          = await getPrimaryKey(table);
+    const colNames    = [];
+    const placeholders = [];
+    const params      = [];
+
     for (const col of columns) {
         if (col.name === pk || !(col.name in data)) continue;
         colNames.push(quoteIdentifier(col.name));
         params.push(normalizeValue(data[col.name], col.dataType));
         placeholders.push(`$${params.length}`);
     }
+
     if (!colNames.length) return false;
-    await db.query(`INSERT INTO ${quoteIdentifier(table)} (${colNames.join(', ')}) VALUES (${placeholders.join(', ')})`, params);
+
+    await db.query(
+        `INSERT INTO ${quoteIdentifier(table)} (${colNames.join(', ')}) VALUES (${placeholders.join(', ')})`,
+        params
+    );
     return true;
 }
 
@@ -191,14 +208,19 @@ async function updateRow(table, data) {
     table    = sanitizeIdentifier(table);
     const pk = await getPrimaryKey(table);
     if (!table || !pk || !(pk in data)) return false;
+
     const columns = await getTableColumns(table);
-    const sets = [], params = [];
+    const sets    = [];
+    const params  = [];
+
     for (const col of columns) {
         if (col.name === pk || !(col.name in data)) continue;
         params.push(normalizeValue(data[col.name], col.dataType));
         sets.push(`${quoteIdentifier(col.name)} = $${params.length}`);
     }
+
     if (!sets.length) return false;
+
     params.push(data[pk]);
     await db.query(
         `UPDATE ${quoteIdentifier(table)} SET ${sets.join(', ')} WHERE ${quoteIdentifier(pk)} = $${params.length}`,
@@ -232,29 +254,34 @@ async function getDistrictByName(name) {
 }
 
 async function getCropRecommendations(districtName) {
-    const { rows } = await db.query(`
-        SELECT * FROM public.crop_recommendations
-        WHERE LOWER(district_name) = LOWER($1) ORDER BY month`, [districtName]);
+    const { rows } = await db.query(
+        `SELECT * FROM public.crop_recommendations WHERE LOWER(district_name) = LOWER($1) ORDER BY month`,
+        [districtName]
+    );
     return rows;
 }
 
 async function getDistrictDataset(districtName) {
     const { rows } = await db.query(
-        `SELECT * FROM public.district_dataset WHERE LOWER(district_name) = LOWER($1)`, [districtName]
+        `SELECT * FROM public.district_dataset WHERE LOWER(district_name) = LOWER($1)`,
+        [districtName]
     );
     return rows[0] || null;
 }
 
 async function getDistrictImagePath(districtId) {
     const { rows } = await db.query(
-        `SELECT image_path FROM public.district_maps WHERE district_id = $1 LIMIT 1`, [districtId]
+        `SELECT image_path FROM public.district_maps WHERE district_id = $1 LIMIT 1`,
+        [districtId]
     );
     if (!rows[0]?.image_path) return null;
     return '/' + rows[0].image_path.replace(/^\//, '');
 }
 
 async function getAllDistrictNames() {
-    const { rows } = await db.query(`SELECT district_name FROM public.districts ORDER BY district_name`);
+    const { rows } = await db.query(
+        `SELECT district_name FROM public.districts ORDER BY district_name`
+    );
     return rows.map(r => r.district_name);
 }
 
@@ -264,7 +291,7 @@ async function getAllDistrictNames() {
 
 function normalizeValue(value, dataType) {
     if (value === '' || value == null) return null;
-    if (['integer','bigint','smallint','numeric','decimal'].some(t => dataType.includes(t))) {
+    if (['integer', 'bigint', 'smallint', 'numeric', 'decimal'].some(t => dataType.includes(t))) {
         return parseFloat(value);
     }
     return String(value);
@@ -277,7 +304,9 @@ function formatValue(value) {
 }
 
 function toTitleCase(str) {
-    return str.replace(/_/g, ' ').replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
+    return str
+        .replace(/_/g, ' ')
+        .replace(/\w\S*/g, w => w[0].toUpperCase() + w.slice(1).toLowerCase());
 }
 
 module.exports = {
