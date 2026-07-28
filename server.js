@@ -24,7 +24,7 @@ app.use((req, res) => {
     res.status(404).render('error', { title: '404 Not Found', message: 'Page not found' });
 });
 
-// ── Global error handler ─────────────────────────────────────────────────────
+// ── Error handler ─────────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
     console.error('Server error:', err.message);
     res.status(500).render('error', {
@@ -33,9 +33,11 @@ app.use((err, req, res, next) => {
     });
 });
 
-// ── Local dev: start listening ───────────────────────────────────────────────
-// On Vercel this block is skipped — Vercel imports the exported app directly.
-if (process.env.NODE_ENV !== 'production') {
+// ── Export for Vercel (must be at top level, not conditional) ─────────────────
+module.exports = app;
+
+// ── Local dev server ─────────────────────────────────────────────────────────
+if (require.main === module) {
     const db = require('./database/connection');
     (async () => {
         try {
@@ -48,7 +50,4 @@ if (process.env.NODE_ENV !== 'production') {
             process.exit(1);
         }
     })();
-} else {
-    // Production (Vercel): just export — Vercel calls the handler per request
-    module.exports = app;
 }
