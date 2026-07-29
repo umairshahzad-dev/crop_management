@@ -90,15 +90,15 @@
             <!-- Stats bar -->
             <div class="d-flex align-items-center gap-3 mb-3">
                 <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
-                    <i class="bi bi-geo-alt-fill me-1"></i><%= grouped.length %> Districts
+                    <i class="bi bi-geo-alt-fill me-1"></i><%= totalDistricts %> Districts
                 </span>
                 <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
-                    <i class="bi bi-calendar3 me-1"></i><%= total %> Total Records
+                    <i class="bi bi-calendar3 me-1"></i><%= totalRows %> Total Records
                 </span>
-                <button class="btn btn-sm btn-outline-secondary ms-auto" id="expandAllBtn" onclick="toggleAll(true)">
+                <button class="btn btn-sm btn-outline-secondary ms-auto" onclick="toggleAll(true)">
                     <i class="bi bi-arrows-expand me-1"></i>Expand All
                 </button>
-                <button class="btn btn-sm btn-outline-secondary" id="collapseAllBtn" onclick="toggleAll(false)">
+                <button class="btn btn-sm btn-outline-secondary" onclick="toggleAll(false)">
                     <i class="bi bi-arrows-collapse me-1"></i>Collapse All
                 </button>
             </div>
@@ -214,6 +214,49 @@
                         </div>
                     <% } %>
                 </div>
+            <% } %>
+
+            <!-- ── District Pagination ─────────────────────────────── -->
+            <% if (totalPages > 1) { %>
+            <div class="d-flex align-items-center justify-content-between mt-4 flex-wrap gap-2">
+                <span class="small text-muted">
+                    Showing districts <%= (page - 1) * 10 + 1 %>–<%= Math.min(page * 10, totalDistricts) %>
+                    of <strong><%= totalDistricts %></strong>
+                </span>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0 gap-1">
+                        <li class="page-item <%= page === 1 ? 'disabled' : '' %>">
+                            <a class="page-link rounded" href="/crud?table=crop_recommendations&page=1&search=<%= encodeURIComponent(search) %>">
+                                <i class="bi bi-chevron-double-left"></i>
+                            </a>
+                        </li>
+                        <li class="page-item <%= page === 1 ? 'disabled' : '' %>">
+                            <a class="page-link rounded" href="/crud?table=crop_recommendations&page=<%= Math.max(1, page - 1) %>&search=<%= encodeURIComponent(search) %>">
+                                <i class="bi bi-chevron-left"></i>
+                            </a>
+                        </li>
+                        <% const pStart = Math.max(1, page - 2); const pEnd = Math.min(totalPages, page + 2); %>
+                        <% for (let i = pStart; i <= pEnd; i++) { %>
+                            <li class="page-item <%= i === page ? 'active' : '' %>">
+                                <a class="page-link rounded"
+                                   href="/crud?table=crop_recommendations&page=<%= i %>&search=<%= encodeURIComponent(search) %>">
+                                    <%= i %>
+                                </a>
+                            </li>
+                        <% } %>
+                        <li class="page-item <%= page === totalPages ? 'disabled' : '' %>">
+                            <a class="page-link rounded" href="/crud?table=crop_recommendations&page=<%= Math.min(totalPages, page + 1) %>&search=<%= encodeURIComponent(search) %>">
+                                <i class="bi bi-chevron-right"></i>
+                            </a>
+                        </li>
+                        <li class="page-item <%= page === totalPages ? 'disabled' : '' %>">
+                            <a class="page-link rounded" href="/crud?table=crop_recommendations&page=<%= totalPages %>&search=<%= encodeURIComponent(search) %>">
+                                <i class="bi bi-chevron-double-right"></i>
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
             <% } %>
 
         </div>
