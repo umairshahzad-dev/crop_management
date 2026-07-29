@@ -1,0 +1,255 @@
+<%- include('partials/head') %>
+    <%- include('partials/sidebar') %>
+    <main class="flex-grow-1 p-4">
+        <%- include('partials/navbar') %>
+        <div class="container-fluid py-4">
+
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
+                <div>
+                    <h4 class="fw-bold mb-0">Crop Recommendations</h4>
+                    <p class="text-muted small mb-0 mt-1">
+                        <i class="bi bi-flower1 me-1"></i>
+                        Showing January records by default — click <strong>Show More</strong> to expand all months
+                    </p>
+                </div>
+                <form class="d-flex gap-2" method="get" action="/crud" style="min-width:260px">
+                    <input type="hidden" name="table" value="crop_recommendations">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0 ps-0"
+                               name="search" placeholder="Search by district…"
+                               value="<%= search %>" style="box-shadow:none;">
+                        <button class="btn btn-primary px-3" type="submit">Search</button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Alerts -->
+            <% if (created) { %>
+                <div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 fade show mb-4">
+                    <i class="bi bi-check-circle-fill"></i><span>Record created successfully.</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+            <% if (updated) { %>
+                <div class="alert alert-info alert-dismissible d-flex align-items-center gap-2 fade show mb-4">
+                    <i class="bi bi-pencil-fill"></i><span>Record updated successfully.</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+
+            <!-- Add Record Card -->
+            <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;overflow:hidden;">
+                <div class="card-header bg-white border-bottom py-3 px-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:34px;height:34px;background:var(--accent);">
+                            <i class="bi bi-plus-lg text-success fw-bold"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0">Add New Recommendation</h6>
+                            <p class="text-muted mb-0" style="font-size:0.75rem;">Fill in the fields below</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" class="row g-3" action="/crud?table=crop_recommendations">
+                        <input type="hidden" name="action" value="create">
+                        <% for (const col of columns) { %>
+                            <div class="col-sm-6 col-lg-4">
+                                <label class="form-label fw-semibold small text-secondary mb-1">
+                                    <%= toTitleCase(col.name) %>
+                                </label>
+                                <% const opts = fkOptions[col.name] || []; %>
+                                <% if (opts.length) { %>
+                                    <select class="form-select form-select-sm crud-input" name="<%= col.name %>">
+                                        <option value="">— Select —</option>
+                                        <% for (const opt of opts) { %>
+                                            <option value="<%= opt.value %>"><%= opt.label %></option>
+                                        <% } %>
+                                    </select>
+                                <% } else { %>
+                                    <input type="text" class="form-control form-control-sm crud-input"
+                                           name="<%= col.name %>"
+                                           placeholder="Enter <%= toTitleCase(col.name).toLowerCase() %>…">
+                                <% } %>
+                            </div>
+                        <% } %>
+                        <div class="col-12 pt-1">
+                            <button class="btn btn-success px-4" type="submit">
+                                <i class="bi bi-plus-circle me-2"></i>Add Record
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Stats bar -->
+            <div class="d-flex align-items-center gap-3 mb-3">
+                <span class="badge bg-success bg-opacity-10 text-success px-3 py-2 rounded-pill">
+                    <i class="bi bi-geo-alt-fill me-1"></i><%= grouped.length %> Districts
+                </span>
+                <span class="badge bg-primary bg-opacity-10 text-primary px-3 py-2 rounded-pill">
+                    <i class="bi bi-calendar3 me-1"></i><%= total %> Total Records
+                </span>
+                <button class="btn btn-sm btn-outline-secondary ms-auto" id="expandAllBtn" onclick="toggleAll(true)">
+                    <i class="bi bi-arrows-expand me-1"></i>Expand All
+                </button>
+                <button class="btn btn-sm btn-outline-secondary" id="collapseAllBtn" onclick="toggleAll(false)">
+                    <i class="bi bi-arrows-collapse me-1"></i>Collapse All
+                </button>
+            </div>
+
+            <!-- District Groups -->
+            <% if (grouped.length === 0) { %>
+                <div class="card border-0 shadow-sm text-center py-5" style="border-radius:16px;">
+                    <i class="bi bi-inbox fs-1 text-muted opacity-50 d-block mb-2"></i>
+                    <p class="text-muted">No records found<% if (search) { %> for "<%= search %>"<% } %>.</p>
+                </div>
+            <% } %>
+
+            <% for (let gi = 0; gi < grouped.length; gi++) { %>
+                <% const g = grouped[gi]; %>
+                <div class="card border-0 shadow-sm mb-3 district-card" style="border-radius:14px;overflow:hidden;">
+
+                    <!-- District header row (January) -->
+                    <div class="card-body p-0">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead style="background:#f0faf4;" class="<% if (gi > 0) { %>d-none<% } %>">
+                                <tr>
+                                    <% for (const col of columns) { %>
+                                        <th class="px-4 py-3 small fw-semibold text-uppercase text-secondary border-0"
+                                            style="letter-spacing:.04em;white-space:nowrap;">
+                                            <%= toTitleCase(col.name) %>
+                                        </th>
+                                    <% } %>
+                                    <th class="px-4 py-3 small fw-semibold text-uppercase text-secondary border-0">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <!-- Always-visible: January row -->
+                            <tbody>
+                                <tr class="border-top">
+                                    <% for (const col of columns) { %>
+                                        <td class="px-4 py-3 small">
+                                            <% if (col.name === 'district_name') { %>
+                                                <span class="fw-semibold text-dark"><%= formatValue(g.first[col.name]) %></span>
+                                            <% } else if (col.name === 'month') { %>
+                                                <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 rounded-pill">
+                                                    <%= formatValue(g.first[col.name]) %>
+                                                </span>
+                                            <% } else { %>
+                                                <%= formatValue(g.first[col.name]) %>
+                                            <% } %>
+                                        </td>
+                                    <% } %>
+                                    <td class="px-4 py-3">
+                                        <div class="d-flex gap-1 flex-nowrap">
+                                            <a class="btn btn-sm btn-outline-primary"
+                                               href="/crud?table=crop_recommendations&view=<%= encodeURIComponent(String(g.pk)) %>"
+                                               title="View"><i class="bi bi-eye"></i></a>
+                                            <a class="btn btn-sm btn-outline-warning"
+                                               href="/crud?table=crop_recommendations&edit=<%= encodeURIComponent(String(g.pk)) %>"
+                                               title="Edit"><i class="bi bi-pencil"></i></a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Expandable: remaining months -->
+                    <% if (g.rest.length > 0) { %>
+                        <div class="collapse month-collapse" id="months-<%= gi %>">
+                            <div class="border-top" style="background:#fafcfa;">
+                                <table class="table table-hover align-middle mb-0">
+                                    <tbody>
+                                        <% for (const row of g.rest) { %>
+                                            <tr>
+                                                <% for (const col of columns) { %>
+                                                    <td class="px-4 py-2 small" style="padding-left:1rem;">
+                                                        <% if (col.name === 'district_name') { %>
+                                                            <span class="text-muted"><%= formatValue(row[col.name]) %></span>
+                                                        <% } else if (col.name === 'month') { %>
+                                                            <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1 rounded-pill">
+                                                                <%= formatValue(row[col.name]) %>
+                                                            </span>
+                                                        <% } else { %>
+                                                            <%= formatValue(row[col.name]) %>
+                                                        <% } %>
+                                                    </td>
+                                                <% } %>
+                                                <td class="px-4 py-2">
+                                                    <div class="d-flex gap-1 flex-nowrap">
+                                                        <a class="btn btn-sm btn-outline-primary"
+                                                           href="/crud?table=crop_recommendations&view=<%= encodeURIComponent(String(row.id || '')) %>"
+                                                           title="View"><i class="bi bi-eye"></i></a>
+                                                        <a class="btn btn-sm btn-outline-warning"
+                                                           href="/crud?table=crop_recommendations&edit=<%= encodeURIComponent(String(row.id || '')) %>"
+                                                           title="Edit"><i class="bi bi-pencil"></i></a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        <% } %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Toggle button -->
+                        <div class="px-4 py-2 border-top d-flex align-items-center justify-content-between"
+                             style="background:#f8fafc;">
+                            <span class="small text-muted"><%= g.rest.length %> more month<%= g.rest.length > 1 ? 's' : '' %></span>
+                            <button class="btn btn-sm btn-link text-decoration-none text-success p-0 toggle-btn"
+                                    type="button"
+                                    data-bs-toggle="collapse"
+                                    data-bs-target="#months-<%= gi %>"
+                                    data-gi="<%= gi %>"
+                                    onclick="handleToggle(this)">
+                                <i class="bi bi-chevron-down me-1"></i>Show More
+                            </button>
+                        </div>
+                    <% } %>
+                </div>
+            <% } %>
+
+        </div>
+        <%- include('partials/footer') %>
+    </main>
+</div>
+
+<style>
+.crud-input { border-radius:8px;border-color:#e2e8f0;transition:border-color .2s,box-shadow .2s; }
+.crud-input:focus { border-color:#1f5f3d;box-shadow:0 0 0 3px rgba(31,95,61,.12); }
+.month-collapse { transition: all .3s ease; }
+.district-card { transition: box-shadow .2s; }
+.district-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,.08) !important; }
+.toggle-btn { font-size:.85rem; }
+</style>
+
+<script>
+function handleToggle(btn) {
+    const target = document.querySelector(btn.getAttribute('data-bs-target'));
+    const isExpanded = target.classList.contains('show');
+    btn.innerHTML = isExpanded
+        ? '<i class="bi bi-chevron-down me-1"></i>Show More'
+        : '<i class="bi bi-chevron-up me-1"></i>Show Less';
+}
+
+function toggleAll(expand) {
+    document.querySelectorAll('.month-collapse').forEach(el => {
+        const bs = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+        expand ? bs.show() : bs.hide();
+    });
+    document.querySelectorAll('.toggle-btn').forEach(btn => {
+        btn.innerHTML = expand
+            ? '<i class="bi bi-chevron-up me-1"></i>Show Less'
+            : '<i class="bi bi-chevron-down me-1"></i>Show More';
+    });
+}
+</script>
+</body>
+</html>
