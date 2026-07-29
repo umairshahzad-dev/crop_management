@@ -4,80 +4,170 @@
         <%- include('partials/navbar') %>
         <div class="container-fluid py-4">
 
-            <div class="d-flex justify-content-between align-items-center mb-3">
+            <!-- Page header + search -->
+            <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
                 <div>
-                    <h3 class="fw-bold mb-1"><%= toTitleCase(table) %></h3>
-                    <p class="text-muted mb-0">Dynamic CRUD screen generated from the PostgreSQL schema.</p>
+                    <h4 class="fw-bold mb-0"><%= toTitleCase(table) %></h4>
+                    <p class="text-muted small mb-0 mt-1">
+                        <i class="bi bi-database me-1"></i>Manage records in <code><%= table %></code>
+                    </p>
                 </div>
-                <form class="d-flex gap-2" method="get" action="/crud">
+                <form class="d-flex gap-2" method="get" action="/crud" style="min-width:260px">
                     <input type="hidden" name="table" value="<%= table %>">
-                    <input type="text" class="form-control" name="search" placeholder="Search" value="<%= search %>">
-                    <button class="btn btn-primary" type="submit">Search</button>
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" class="form-control border-start-0 ps-0"
+                               name="search" placeholder="Search records…"
+                               value="<%= search %>" style="box-shadow:none;">
+                        <button class="btn btn-primary px-3" type="submit">Search</button>
+                    </div>
                 </form>
             </div>
 
-            <% if (created) { %><div class="alert alert-success">Record created successfully.</div><% } %>
-            <% if (updated) { %><div class="alert alert-info">Record updated successfully.</div><% } %>
-            <% if (deleted) { %><div class="alert alert-warning">Record deleted successfully.</div><% } %>
+            <!-- Alerts -->
+            <% if (created) { %>
+                <div class="alert alert-success alert-dismissible d-flex align-items-center gap-2 fade show mb-4" role="alert">
+                    <i class="bi bi-check-circle-fill"></i>
+                    <span>Record created successfully.</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+            <% if (updated) { %>
+                <div class="alert alert-info alert-dismissible d-flex align-items-center gap-2 fade show mb-4" role="alert">
+                    <i class="bi bi-pencil-fill"></i>
+                    <span>Record updated successfully.</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
+            <% if (deleted) { %>
+                <div class="alert alert-warning alert-dismissible d-flex align-items-center gap-2 fade show mb-4" role="alert">
+                    <i class="bi bi-trash-fill"></i>
+                    <span>Record deleted successfully.</span>
+                    <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert"></button>
+                </div>
+            <% } %>
 
-            <!-- Create form -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-body">
-                    <form method="post" class="row g-3" action="/crud?table=<%= encodeURIComponent(table) %>">
+            <!-- ── Add Record Card ─────────────────────────────────────── -->
+            <div class="card border-0 shadow-sm mb-4" style="border-radius:16px;overflow:hidden;">
+                <div class="card-header bg-white border-bottom py-3 px-4">
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:34px;height:34px;background:var(--accent);">
+                            <i class="bi bi-plus-lg text-success fw-bold"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0">Add New Record</h6>
+                            <p class="text-muted mb-0" style="font-size:0.75rem;">Fill in the fields below</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" class="row g-3"
+                          action="/crud?table=<%= encodeURIComponent(table) %>">
                         <input type="hidden" name="action" value="create">
+
                         <% for (const col of columns) { %>
                             <% if (col.name === pk) continue; %>
-                            <div class="col-md-4">
-                                <label class="form-label"><%= toTitleCase(col.name) %></label>
+                            <div class="col-sm-6 col-lg-4">
+                                <label class="form-label fw-semibold small text-secondary mb-1">
+                                    <%= toTitleCase(col.name) %>
+                                    <% if (!col.nullable) { %><span class="text-danger ms-1">*</span><% } %>
+                                </label>
                                 <% const opts = fkOptions[col.name] || []; %>
                                 <% if (opts.length) { %>
-                                    <select class="form-select" name="<%= col.name %>">
-                                        <option value="">Select</option>
+                                    <select class="form-select form-select-sm crud-input"
+                                            name="<%= col.name %>"
+                                            <% if (!col.nullable) { %>required<% } %>>
+                                        <option value="">— Select <%= toTitleCase(col.name) %> —</option>
                                         <% for (const opt of opts) { %>
                                             <option value="<%= opt.value %>"><%= opt.label %></option>
                                         <% } %>
                                     </select>
                                 <% } else { %>
-                                    <input type="text" class="form-control" name="<%= col.name %>">
+                                    <input type="text"
+                                           class="form-control form-control-sm crud-input"
+                                           name="<%= col.name %>"
+                                           placeholder="Enter <%= toTitleCase(col.name).toLowerCase() %>…"
+                                           <% if (!col.nullable) { %>required<% } %>>
                                 <% } %>
                             </div>
                         <% } %>
-                        <div class="col-12">
-                            <button class="btn btn-success" type="submit">Add Record</button>
+
+                        <div class="col-12 pt-1">
+                            <button class="btn btn-success px-4" type="submit">
+                                <i class="bi bi-plus-circle me-2"></i>Add Record
+                            </button>
                         </div>
                     </form>
                 </div>
             </div>
 
-            <!-- Data table -->
-            <div class="card shadow-sm">
-                <div class="card-body">
+            <!-- ── Data Table Card ────────────────────────────────────── -->
+            <div class="card border-0 shadow-sm" style="border-radius:16px;overflow:hidden;">
+                <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-table text-primary"></i>
+                        <h6 class="fw-bold mb-0">Records</h6>
+                        <span class="badge bg-primary bg-opacity-10 text-primary ms-1"><%= total %></span>
+                    </div>
+                </div>
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead class="table-light">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead style="background:#f8fafc;">
                                 <tr>
                                     <% for (const col of columns) { %>
-                                        <th>
-                                            <a class="text-decoration-none"
+                                        <th class="px-4 py-3 small fw-semibold text-uppercase text-secondary border-0"
+                                            style="letter-spacing:.04em;white-space:nowrap;">
+                                            <a class="text-decoration-none text-secondary d-flex align-items-center gap-1"
                                                href="/crud?table=<%= encodeURIComponent(table) %>&sort=<%= encodeURIComponent(col.name) %>&direction=<%= direction === 'ASC' ? 'DESC' : 'ASC' %>&search=<%= encodeURIComponent(search) %>">
                                                 <%= toTitleCase(col.name) %>
+                                                <% if (sort === col.name) { %>
+                                                    <i class="bi bi-chevron-<%= direction === 'ASC' ? 'up' : 'down' %> small"></i>
+                                                <% } else { %>
+                                                    <i class="bi bi-chevron-expand small opacity-50"></i>
+                                                <% } %>
                                             </a>
                                         </th>
                                     <% } %>
-                                    <th>Actions</th>
+                                    <th class="px-4 py-3 small fw-semibold text-uppercase text-secondary border-0">Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <% for (const row of rows) { %>
+                                <% if (rows.length === 0) { %>
                                     <tr>
+                                        <td colspan="<%= columns.length + 1 %>" class="text-center py-5 text-muted">
+                                            <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>
+                                            No records found<% if (search) { %> for "<%= search %>"<% } %>.
+                                        </td>
+                                    </tr>
+                                <% } %>
+                                <% for (const row of rows) { %>
+                                    <tr class="border-top">
                                         <% for (const col of columns) { %>
-                                            <td><%= formatValue(row[col.name]) %></td>
+                                            <td class="px-4 py-3 small"><%= formatValue(row[col.name]) %></td>
                                         <% } %>
                                         <% const recordId = encodeURIComponent(String(row[pk] || row.__row_id || '')); %>
-                                        <td>
-                                            <a class="btn btn-sm btn-outline-primary" href="/crud?table=<%= encodeURIComponent(table) %>&view=<%= recordId %>">View</a>
-                                            <a class="btn btn-sm btn-outline-warning" href="/crud?table=<%= encodeURIComponent(table) %>&edit=<%= recordId %>">Edit</a>
-                                            <a class="btn btn-sm btn-outline-danger" href="/crud/delete?table=<%= encodeURIComponent(table) %>&id=<%= recordId %>" data-confirm-delete>Delete</a>
+                                        <td class="px-4 py-3">
+                                            <div class="d-flex gap-1 flex-nowrap">
+                                                <a class="btn btn-sm btn-outline-primary"
+                                                   href="/crud?table=<%= encodeURIComponent(table) %>&view=<%= recordId %>"
+                                                   title="View">
+                                                    <i class="bi bi-eye"></i>
+                                                </a>
+                                                <a class="btn btn-sm btn-outline-warning"
+                                                   href="/crud?table=<%= encodeURIComponent(table) %>&edit=<%= recordId %>"
+                                                   title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                                <a class="btn btn-sm btn-outline-danger"
+                                                   href="/crud/delete?table=<%= encodeURIComponent(table) %>&id=<%= recordId %>"
+                                                   data-confirm-delete title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </a>
+                                            </div>
                                         </td>
                                     </tr>
                                 <% } %>
@@ -87,62 +177,104 @@
 
                     <!-- Pagination -->
                     <% if (totalPages > 1) { %>
-                    <nav class="mt-3">
-                        <ul class="pagination justify-content-end">
-                            <li class="page-item <%= page === 1 ? 'disabled' : '' %>">
-                                <a class="page-link" href="/crud?table=<%= encodeURIComponent(table) %>&page=1&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>">First</a>
-                            </li>
-                            <li class="page-item <%= page === 1 ? 'disabled' : '' %>">
-                                <a class="page-link" href="/crud?table=<%= encodeURIComponent(table) %>&page=<%= Math.max(1, page - 1) %>&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>">Previous</a>
-                            </li>
-                            <% for (let i = 1; i <= totalPages; i++) { %>
-                                <li class="page-item <%= i === page ? 'active' : '' %>">
-                                    <a class="page-link" href="/crud?table=<%= encodeURIComponent(table) %>&page=<%= i %>&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>"><%= i %></a>
+                    <div class="d-flex align-items-center justify-content-between px-4 py-3 border-top">
+                        <span class="small text-muted">
+                            Page <%= page %> of <%= totalPages %>
+                            &nbsp;·&nbsp; <%= total %> total records
+                        </span>
+                        <nav>
+                            <ul class="pagination pagination-sm mb-0 gap-1">
+                                <li class="page-item <%= page === 1 ? 'disabled' : '' %>">
+                                    <a class="page-link rounded" href="/crud?table=<%= encodeURIComponent(table) %>&page=1&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>">
+                                        <i class="bi bi-chevron-double-left"></i>
+                                    </a>
                                 </li>
-                            <% } %>
-                            <li class="page-item <%= page === totalPages ? 'disabled' : '' %>">
-                                <a class="page-link" href="/crud?table=<%= encodeURIComponent(table) %>&page=<%= Math.min(totalPages, page + 1) %>&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>">Next</a>
-                            </li>
-                            <li class="page-item <%= page === totalPages ? 'disabled' : '' %>">
-                                <a class="page-link" href="/crud?table=<%= encodeURIComponent(table) %>&page=<%= totalPages %>&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>">Last</a>
-                            </li>
-                        </ul>
-                    </nav>
+                                <li class="page-item <%= page === 1 ? 'disabled' : '' %>">
+                                    <a class="page-link rounded" href="/crud?table=<%= encodeURIComponent(table) %>&page=<%= Math.max(1, page - 1) %>&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>">
+                                        <i class="bi bi-chevron-left"></i>
+                                    </a>
+                                </li>
+                                <% const start = Math.max(1, page - 2); const end = Math.min(totalPages, page + 2); %>
+                                <% for (let i = start; i <= end; i++) { %>
+                                    <li class="page-item <%= i === page ? 'active' : '' %>">
+                                        <a class="page-link rounded" href="/crud?table=<%= encodeURIComponent(table) %>&page=<%= i %>&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>"><%= i %></a>
+                                    </li>
+                                <% } %>
+                                <li class="page-item <%= page === totalPages ? 'disabled' : '' %>">
+                                    <a class="page-link rounded" href="/crud?table=<%= encodeURIComponent(table) %>&page=<%= Math.min(totalPages, page + 1) %>&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>">
+                                        <i class="bi bi-chevron-right"></i>
+                                    </a>
+                                </li>
+                                <li class="page-item <%= page === totalPages ? 'disabled' : '' %>">
+                                    <a class="page-link rounded" href="/crud?table=<%= encodeURIComponent(table) %>&page=<%= totalPages %>&search=<%= encodeURIComponent(search) %>&sort=<%= encodeURIComponent(sort) %>&direction=<%= direction %>">
+                                        <i class="bi bi-chevron-double-right"></i>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </div>
                     <% } %>
                 </div>
             </div>
 
-            <!-- View panel -->
+            <!-- ── View Panel ─────────────────────────────────────────── -->
             <% if (viewRow) { %>
-                <div class="card shadow-sm mt-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Details</h5>
-                        <dl class="row">
+                <div class="card border-0 shadow-sm mt-4" style="border-radius:16px;">
+                    <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2">
+                        <i class="bi bi-eye text-primary"></i>
+                        <h6 class="fw-bold mb-0">Record Details</h6>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
                             <% for (const [key, value] of Object.entries(viewRow)) { %>
-                                <dt class="col-sm-3"><%= toTitleCase(key) %></dt>
-                                <dd class="col-sm-9"><%= formatValue(value) %></dd>
+                                <div class="col-sm-6 col-lg-4">
+                                    <div class="p-3 rounded-3 h-100" style="background:#f8fafc;">
+                                        <div class="text-muted small mb-1"><%= toTitleCase(key) %></div>
+                                        <div class="fw-semibold"><%= formatValue(value) %></div>
+                                    </div>
+                                </div>
                             <% } %>
-                        </dl>
+                        </div>
+                        <div class="mt-3">
+                            <a href="/crud?table=<%= encodeURIComponent(table) %>" class="btn btn-sm btn-outline-secondary">
+                                <i class="bi bi-arrow-left me-1"></i>Back
+                            </a>
+                        </div>
                     </div>
                 </div>
             <% } %>
 
-            <!-- Edit panel -->
+            <!-- ── Edit Panel ─────────────────────────────────────────── -->
             <% if (editRow) { %>
-                <div class="card shadow-sm mt-4">
-                    <div class="card-body">
-                        <h5 class="card-title">Edit Record</h5>
-                        <form method="post" class="row g-3" action="/crud?table=<%= encodeURIComponent(table) %>">
+                <div class="card border-0 shadow-sm mt-4" style="border-radius:16px;overflow:hidden;">
+                    <div class="card-header bg-white border-bottom py-3 px-4 d-flex align-items-center gap-2">
+                        <div class="rounded-circle d-flex align-items-center justify-content-center"
+                             style="width:34px;height:34px;background:#fff8e1;">
+                            <i class="bi bi-pencil text-warning"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold mb-0">Edit Record</h6>
+                            <p class="text-muted mb-0" style="font-size:0.75rem;">Update the fields below</p>
+                        </div>
+                    </div>
+                    <div class="card-body p-4">
+                        <form method="post" class="row g-3"
+                              action="/crud?table=<%= encodeURIComponent(table) %>">
                             <input type="hidden" name="action" value="update">
-                            <input type="hidden" name="<%= pk %>" value="<%= editRow[pk] || editRow.__row_id || '' %>">
+                            <input type="hidden" name="<%= pk %>"
+                                   value="<%= editRow[pk] || editRow.__row_id || '' %>">
+
                             <% for (const col of columns) { %>
                                 <% if (col.name === pk) continue; %>
-                                <div class="col-md-4">
-                                    <label class="form-label"><%= toTitleCase(col.name) %></label>
+                                <div class="col-sm-6 col-lg-4">
+                                    <label class="form-label fw-semibold small text-secondary mb-1">
+                                        <%= toTitleCase(col.name) %>
+                                    </label>
                                     <% const opts = fkOptions[col.name] || []; %>
                                     <% if (opts.length) { %>
-                                        <select class="form-select" name="<%= col.name %>">
-                                            <option value="">Select</option>
+                                        <select class="form-select form-select-sm crud-input"
+                                                name="<%= col.name %>">
+                                            <option value="">— Select —</option>
                                             <% for (const opt of opts) { %>
                                                 <option value="<%= opt.value %>"
                                                     <%= String(editRow[col.name]) === String(opt.value) ? 'selected' : '' %>>
@@ -151,15 +283,22 @@
                                             <% } %>
                                         </select>
                                     <% } else { %>
-                                        <input type="text" class="form-control"
+                                        <input type="text"
+                                               class="form-control form-control-sm crud-input"
                                                name="<%= col.name %>"
                                                value="<%= editRow[col.name] || '' %>">
                                     <% } %>
                                 </div>
                             <% } %>
-                            <div class="col-12">
-                                <button class="btn btn-warning" type="submit">Save Changes</button>
-                                <a href="/crud?table=<%= encodeURIComponent(table) %>" class="btn btn-secondary ms-2">Cancel</a>
+
+                            <div class="col-12 pt-1 d-flex gap-2">
+                                <button class="btn btn-warning px-4" type="submit">
+                                    <i class="bi bi-save me-2"></i>Save Changes
+                                </button>
+                                <a href="/crud?table=<%= encodeURIComponent(table) %>"
+                                   class="btn btn-outline-secondary">
+                                    <i class="bi bi-x-lg me-1"></i>Cancel
+                                </a>
                             </div>
                         </form>
                     </div>
@@ -170,5 +309,21 @@
         <%- include('partials/footer') %>
     </main>
 </div>
+
+<style>
+.crud-input {
+    border-radius: 8px;
+    border-color: #e2e8f0;
+    transition: border-color .2s, box-shadow .2s;
+}
+.crud-input:focus {
+    border-color: #1f5f3d;
+    box-shadow: 0 0 0 3px rgba(31,95,61,.12);
+}
+.table > :not(caption) > * > * { padding-left: 1rem; padding-right: 1rem; }
+.pagination .page-link { border-radius: 8px !important; border-color: #e2e8f0; color: #4b5563; }
+.pagination .page-item.active .page-link { background-color: #1f5f3d; border-color: #1f5f3d; }
+.btn-outline-primary:hover, .btn-outline-warning:hover, .btn-outline-danger:hover { transform: translateY(-1px); transition: transform .15s; }
+</style>
 </body>
 </html>
