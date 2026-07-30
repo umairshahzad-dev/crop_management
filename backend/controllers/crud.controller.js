@@ -137,6 +137,14 @@ async function showCrud(req, res, next) {
             const offset = (districtPage - 1) * DISTRICTS_PER_PAGE;
             const grouped = allGrouped.slice(offset, offset + DISTRICTS_PER_PAGE);
 
+            // Fetch districts for the dropdown (with province names)
+            const districtRows = await require('../../database/connection').query(`
+                SELECT d.district_id, d.district_name, p.province_name
+                FROM public.districts d
+                LEFT JOIN public.provinces p ON p.province_id = d.province_id
+                ORDER BY d.district_name`);
+            const districtOptions = districtRows.rows;
+
             return res.render('crop-recommendations', {
                 title: 'Crop Recommendations',
                 tables, table, columns: visibleCols, grouped,
@@ -146,6 +154,7 @@ async function showCrud(req, res, next) {
                 page: districtPage,
                 totalPages: totalDistrictPages,
                 fkOptions,
+                districtOptions,
                 created:     'created' in req.query,
                 updated:     'updated' in req.query,
                 currentPath: '/crud',

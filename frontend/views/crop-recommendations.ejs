@@ -65,38 +65,72 @@
                                   action="/crud?table=crop_recommendations"
                                   class="row g-3">
                                 <input type="hidden" name="action" value="create">
+                                <input type="hidden" name="district_id" id="hiddenDistrictId">
+
+                                <!-- District selector (auto-fills district_id and province) -->
+                                <div class="col-sm-6">
+                                    <label class="form-label fw-semibold small text-secondary mb-1">
+                                        District <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select form-select-sm crud-input" id="districtSelect" required>
+                                        <option value="">— Select District —</option>
+                                        <% districtOptions.forEach(d => { %>
+                                            <option value="<%= d.district_id %>"
+                                                    data-name="<%= d.district_name %>"
+                                                    data-province="<%= d.province_name %>">
+                                                <%= d.district_name %>
+                                            </option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+
+                                <!-- Province (auto-filled, read-only) -->
+                                <div class="col-sm-6">
+                                    <label class="form-label fw-semibold small text-secondary mb-1">Province</label>
+                                    <input type="text" class="form-control form-control-sm crud-input"
+                                           name="province" id="provinceField" placeholder="Auto-filled from district" readonly>
+                                </div>
+
+                                <!-- Hidden district_name (auto-filled) -->
+                                <input type="hidden" name="district_name" id="hiddenDistrictName">
+
+                                <!-- Month dropdown -->
+                                <div class="col-sm-6">
+                                    <label class="form-label fw-semibold small text-secondary mb-1">
+                                        Month <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select form-select-sm crud-input" name="month" required>
+                                        <option value="">— Select Month —</option>
+                                        <% ['January','February','March','April','May','June',
+                                            'July','August','September','October','November','December'].forEach(m => { %>
+                                            <option value="<%= m %>"><%= m %></option>
+                                        <% }); %>
+                                    </select>
+                                </div>
+
+                                <!-- Season dropdown -->
+                                <div class="col-sm-6">
+                                    <label class="form-label fw-semibold small text-secondary mb-1">
+                                        Season <span class="text-danger">*</span>
+                                    </label>
+                                    <select class="form-select form-select-sm crud-input" name="season" required>
+                                        <option value="">— Select Season —</option>
+                                        <option value="Rabi">Rabi</option>
+                                        <option value="Kharif">Kharif</option>
+                                        <option value="Zaid">Zaid</option>
+                                    </select>
+                                </div>
+
+                                <!-- Remaining text fields -->
                                 <% for (const col of columns) { %>
+                                    <% if (['district_name','province','month','season'].includes(col.name)) continue; %>
                                     <div class="col-sm-6">
                                         <label class="form-label fw-semibold small text-secondary mb-1">
                                             <%= toTitleCase(col.name) %>
                                         </label>
-                                        <% const opts = fkOptions[col.name] || []; %>
-                                        <% if (opts.length) { %>
-                                            <select class="form-select form-select-sm crud-input" name="<%= col.name %>">
-                                                <option value="">— Select —</option>
-                                                <% for (const opt of opts) { %>
-                                                    <option value="<%= opt.value %>"><%= opt.label %></option>
-                                                <% } %>
-                                            </select>
-                                        <% } else if (col.name === 'month') { %>
-                                            <select class="form-select form-select-sm crud-input" name="month">
-                                                <option value="">— Select Month —</option>
-                                                <% ['January','February','March','April','May','June','July','August','September','October','November','December'].forEach(m => { %>
-                                                    <option value="<%= m %>"><%= m %></option>
-                                                <% }); %>
-                                            </select>
-                                        <% } else if (col.name === 'season') { %>
-                                            <select class="form-select form-select-sm crud-input" name="season">
-                                                <option value="">— Select Season —</option>
-                                                <option value="Rabi">Rabi</option>
-                                                <option value="Kharif">Kharif</option>
-                                                <option value="Zaid">Zaid</option>
-                                            </select>
-                                        <% } else { %>
-                                            <input type="text" class="form-control form-control-sm crud-input"
-                                                   name="<%= col.name %>"
-                                                   placeholder="<%= toTitleCase(col.name).toLowerCase() %>…">
-                                        <% } %>
+                                        <input type="text" class="form-control form-control-sm crud-input"
+                                               name="<%= col.name %>"
+                                               placeholder="<%= toTitleCase(col.name).toLowerCase() %>…">
                                     </div>
                                 <% } %>
                             </form>
@@ -305,7 +339,13 @@ function toggleAll(expand) {
     });
 }
 
-// AJAX submit for Add Record modal — uses JSON API endpoint
+// Auto-fill province and district_name when district is selected
+document.getElementById('districtSelect').addEventListener('change', function() {
+    const opt = this.options[this.selectedIndex];
+    document.getElementById('hiddenDistrictId').value   = opt.value;
+    document.getElementById('hiddenDistrictName').value = opt.dataset.name  || '';
+    document.getElementById('provinceField').value      = opt.dataset.province || '';
+});
 document.getElementById('cropAddForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const btn = document.getElementById('cropAddBtn');
