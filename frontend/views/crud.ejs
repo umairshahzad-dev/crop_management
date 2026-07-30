@@ -122,6 +122,7 @@
                             <thead style="background:#f8fafc;">
                                 <tr>
                                     <% for (const col of columns) { %>
+                                        <% if (col.name === pk) continue; %>
                                         <th class="px-4 py-3 small fw-semibold text-uppercase text-secondary border-0"
                                             style="letter-spacing:.04em;white-space:nowrap;">
                                             <a class="text-decoration-none text-secondary d-flex align-items-center gap-1"
@@ -141,15 +142,17 @@
                             <tbody id="tableBody">
                                 <% if (rows.length === 0) { %>
                                     <tr>
-                                        <td colspan="<%= columns.length + 1 %>" class="text-center py-5 text-muted">
+                                        <td colspan="<%= columns.length %>" class="text-center py-5 text-muted">
                                             <i class="bi bi-inbox fs-3 d-block mb-2 opacity-50"></i>
                                             No records found<% if (search) { %> for "<%= search %>"<% } %>.
                                         </td>
                                     </tr>
                                 <% } %>
+                                <% const deletableTables = ['irrigation_types', 'soil_types', 'provinces']; %>
                                 <% for (const row of rows) { %>
                                     <tr class="border-top">
                                         <% for (const col of columns) { %>
+                                            <% if (col.name === pk) continue; %>
                                             <td class="px-4 py-3 small"><%= formatValue(row[col.name]) %></td>
                                         <% } %>
                                         <% const recordId = encodeURIComponent(String(row[pk] || row.__row_id || '')); %>
@@ -161,6 +164,11 @@
                                                 <a class="btn btn-sm btn-outline-warning"
                                                    href="/crud?table=<%= encodeURIComponent(table) %>&edit=<%= recordId %>"
                                                    title="Edit"><i class="bi bi-pencil"></i></a>
+                                                <% if (deletableTables.includes(table)) { %>
+                                                <a class="btn btn-sm btn-outline-danger" data-confirm-delete
+                                                   href="/crud/delete?table=<%= encodeURIComponent(table) %>&id=<%= recordId %>"
+                                                   title="Delete"><i class="bi bi-trash"></i></a>
+                                                <% } %>
                                             </div>
                                         </td>
                                     </tr>
