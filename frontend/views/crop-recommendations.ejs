@@ -78,6 +78,20 @@
                                                     <option value="<%= opt.value %>"><%= opt.label %></option>
                                                 <% } %>
                                             </select>
+                                        <% } else if (col.name === 'month') { %>
+                                            <select class="form-select form-select-sm crud-input" name="month">
+                                                <option value="">— Select Month —</option>
+                                                <% ['January','February','March','April','May','June','July','August','September','October','November','December'].forEach(m => { %>
+                                                    <option value="<%= m %>"><%= m %></option>
+                                                <% }); %>
+                                            </select>
+                                        <% } else if (col.name === 'season') { %>
+                                            <select class="form-select form-select-sm crud-input" name="season">
+                                                <option value="">— Select Season —</option>
+                                                <option value="Rabi">Rabi</option>
+                                                <option value="Kharif">Kharif</option>
+                                                <option value="Zaid">Zaid</option>
+                                            </select>
                                         <% } else { %>
                                             <input type="text" class="form-control form-control-sm crud-input"
                                                    name="<%= col.name %>"
@@ -291,7 +305,7 @@ function toggleAll(expand) {
     });
 }
 
-// AJAX submit for Add Record modal
+// AJAX submit for Add Record modal — uses JSON API endpoint
 document.getElementById('cropAddForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const btn = document.getElementById('cropAddBtn');
@@ -299,25 +313,44 @@ document.getElementById('cropAddForm').addEventListener('submit', async function
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving…';
     alertBox.innerHTML = '';
+
+    // Clear previous field errors
+    this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+    this.querySelectorAll('.invalid-feedback').forEach(el => el.remove());
+
     try {
-        const body = new URLSearchParams(new FormData(this)).toString();
-        const res = await fetch(this.action, {
-            method:'POST',
-            headers:{'Content-Type':'application/x-www-form-urlencoded'},
-            body, redirect:'manual'
+        const formData = new FormData(this);
+        const body = new URLSearchParams(formData).toString();
+        const table = '<%= encodeURIComponent(table) %>';
+
+        const res = await fetch(`/crud/api?table=${table}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body
         });
-        if (res.type==='opaqueredirect' || res.status===302 || res.ok) {
+
+        const result = await res.json();
+
+        if (result.success) {
             bootstrap.Modal.getInstance(document.getElementById('addCropModal')).hide();
             this.reset();
-            window.location.href='/crud?table=crop_recommendations&created=1&page=<%= page %>';
+            window.location.href = `/crud?table=crop_recommendations&created=1&page=<%= page %>`;
         } else {
-            alertBox.innerHTML='<div class="alert alert-danger py-2 small">Failed to add record. Please try again.</div>';
+            // Show errors inline
+            const errList = result.errors || ['Failed to add record.'];
+            alertBox.innerHTML = `
+                <div class="alert alert-danger py-2 mb-3">
+                    <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Please fix the following:</strong>
+                    <ul class="mb-0 mt-1 ps-3">
+                        ${errList.map(e => `<li class="small">${e}</li>`).join('')}
+                    </ul>
+                </div>`;
         }
-    } catch {
-        alertBox.innerHTML='<div class="alert alert-danger py-2 small">Network error. Please try again.</div>';
+    } catch (err) {
+        alertBox.innerHTML = '<div class="alert alert-danger py-2 small"><i class="bi bi-wifi-off me-1"></i>Network error. Please try again.</div>';
     } finally {
-        btn.disabled=false;
-        btn.innerHTML='<i class="bi bi-plus-circle me-2"></i>Add Record';
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Add Record';
     }
 });
 </script>

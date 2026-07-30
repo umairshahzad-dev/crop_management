@@ -298,7 +298,7 @@
 </style>
 
 <script>
-// Submit Add form via AJAX — close modal and reload table on success
+// Submit Add form via JSON API — close modal and reload on success
 document.getElementById('addForm').addEventListener('submit', async function(e) {
     e.preventDefault();
     const btn = document.getElementById('addSubmitBtn');
@@ -307,28 +307,34 @@ document.getElementById('addForm').addEventListener('submit', async function(e) 
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Saving…';
     alertBox.innerHTML = '';
 
+    // Clear previous errors
+    this.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+
     try {
-        const formData = new FormData(this);
-        const body = new URLSearchParams(formData).toString();
-        const res = await fetch(this.action, {
+        const body = new URLSearchParams(new FormData(this)).toString();
+        const res = await fetch(`/crud/api?table=<%= encodeURIComponent(table) %>`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body,
-            redirect: 'manual'
+            body
         });
+        const result = await res.json();
 
-        // Server returns 302 on success
-        if (res.type === 'opaqueredirect' || res.status === 302 || res.ok) {
+        if (result.success) {
             bootstrap.Modal.getInstance(document.getElementById('addModal')).hide();
             this.reset();
-            // Reload current page to show new record
             window.location.href = '/crud?table=<%= encodeURIComponent(table) %>&created=1&page=<%= page %>&search=<%= encodeURIComponent(search) %>';
         } else {
-            const text = await res.text();
-            alertBox.innerHTML = '<div class="alert alert-danger py-2 small">Failed to add record. Please try again.</div>';
+            const errList = result.errors || ['Failed to add record.'];
+            alertBox.innerHTML = `
+                <div class="alert alert-danger py-2 mb-3">
+                    <strong><i class="bi bi-exclamation-triangle-fill me-1"></i>Please fix the following:</strong>
+                    <ul class="mb-0 mt-1 ps-3">
+                        ${errList.map(e => `<li class="small">${e}</li>`).join('')}
+                    </ul>
+                </div>`;
         }
-    } catch(err) {
-        alertBox.innerHTML = '<div class="alert alert-danger py-2 small">Network error. Please try again.</div>';
+    } catch (err) {
+        alertBox.innerHTML = '<div class="alert alert-danger py-2 small"><i class="bi bi-wifi-off me-1"></i>Network error. Please try again.</div>';
     } finally {
         btn.disabled = false;
         btn.innerHTML = '<i class="bi bi-plus-circle me-2"></i>Add Record';

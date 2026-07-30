@@ -1,5 +1,78 @@
 const svc = require('../services/db.service');
 
+// Validation rules per table
+const VALIDATION_RULES = {
+    crop_recommendations: {
+        district_name:      { required: true, label: 'District Name', type: 'text', minLen: 2 },
+        province:           { required: true, label: 'Province',      type: 'text', minLen: 2 },
+        month:              { required: true, label: 'Month',         type: 'enum',
+                              values: ['January','February','March','April','May','June',
+                                       'July','August','September','October','November','December'] },
+        season:             { required: true, label: 'Season',        type: 'enum',
+                              values: ['Rabi','Kharif','Zaid'] },
+        recommended_crops:  { required: true, label: 'Recommended Crops', type: 'text', minLen: 2 },
+        crop_priority:      { required: true, label: 'Crop Priority',     type: 'text', minLen: 1 },
+        temperature_range:  { required: false, label: 'Temperature Range', type: 'text' },
+        rainfall_category:  { required: false, label: 'Rainfall Category', type: 'text' },
+    },
+    provinces:   { province_name: { required: true, label: 'Province Name', type: 'text', minLen: 2 } },
+    districts:   {
+        district_name: { required: true, label: 'District Name', type: 'text', minLen: 2 },
+        province_id:   { required: true, label: 'Province', type: 'number' },
+    },
+    soil_types:  { soil_name:        { required: true, label: 'Soil Name',      type: 'text', minLen: 2 } },
+    fertilizers: {
+        fertilizer_name: { required: true, label: 'Fertilizer Name', type: 'text', minLen: 2 },
+        fertilizer_type: { required: true, label: 'Fertilizer Type', type: 'text', minLen: 2 },
+    },
+    seasons:     { season_name: { required: true, label: 'Season Name', type: 'text', minLen: 2 } },
+};
+
+function validateData(table, data) {
+    const rules = VALIDATION_RULES[table] || {};
+    const errors = [];
+    for (const [field, rule] of Object.entries(rules)) {
+        const val = (data[field] || '').trim();
+        if (rule.required && !val) {
+            errors.push(`${rule.label} is required.`);
+            continue;
+        }
+        if (val) {
+            if (rule.type === 'enum' && !rule.values.includes(val)) {
+                errors.push(`${rule.label} must be one of: ${rule.values.join(', ')}.`);
+            }
+            if (rule.type === 'text' && rule.minLen && val.length < rule.minLen) {
+                errors.push(`${rule.label} must be at least ${rule.minLen} characters.`);
+            }
+            if (rule.type === 'number' && isNaN(parseFloat(val))) {
+                errors.push(`${rule.label} must be a valid number.`);
+            }
+        }
+    }
+    return errors;
+}
+
+async function createRecordApi(req, res) {
+    try {
+        const table = req.query.table || req.body.table || '';
+        const data  = { ...req.body };
+        delete data.action;
+        delete data.table;
+
+        // Validate
+        const errors = validateData(table, data);
+        if (errors.length > 0) {
+            return res.status(422).json({ success: false, errors });
+        }
+
+        await svc.saveRow(table, data);
+        return res.json({ success: true });
+    } catch (err) {
+        console.error('API create error:', err.message);
+        return res.status(500).json({ success: false, errors: [err.message] });
+    }
+}
+
 async function showCrud(req, res, next) {
     try {
         const tables = await svc.getDatabaseTables();
@@ -132,4 +205,4 @@ async function deleteRecord(req, res, next) {
     } catch (err) { next(err); }
 }
 
-module.exports = { showCrud, createRecord, updateRecord, deleteRecord };
+module.exports = { showCrud, createRecord, createRecordApi, updateRecord, deleteRecord };
