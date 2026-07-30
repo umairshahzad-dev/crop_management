@@ -7,16 +7,28 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <h3 class="fw-bold mb-3">District Explorer</h3>
-                    <form class="row g-3" method="get">
+                    <form class="row g-3" method="get" id="districtForm">
                         <div class="col-md-8">
                             <label class="form-label">Search District</label>
-                            <input class="form-control" list="districtList" name="district"
-                                   placeholder="Type a district name" value="<%= districtName %>">
-                            <datalist id="districtList">
-                                <% for (const opt of districtOptions) { %>
-                                    <option value="<%= opt %>">
-                                <% } %>
-                            </datalist>
+                            <div class="position-relative">
+                                <div class="input-group">
+                                    <input class="form-control" id="districtInput" name="district"
+                                           placeholder="Type a district name" value="<%= districtName %>"
+                                           autocomplete="off">
+                                    <span class="input-group-text bg-white border-start-0 px-2" id="districtDropdownToggle"
+                                          style="cursor:pointer;">
+                                        <i class="bi bi-chevron-down small text-muted" id="dropdownArrow"></i>
+                                    </span>
+                                </div>
+                                <ul class="list-group shadow position-absolute w-100 mt-1"
+                                    id="districtDropdown"
+                                    style="z-index:1050;max-height:240px;overflow-y:auto;display:none;border-radius:8px;">
+                                    <% for (const opt of districtOptions) { %>
+                                        <li class="list-group-item list-group-item-action py-2 px-3 small district-option"
+                                            style="cursor:pointer;" data-value="<%= opt %>"><%= opt %></li>
+                                    <% } %>
+                                </ul>
+                            </div>
                         </div>
                         <div class="col-md-4 d-flex align-items-end">
                             <button class="btn btn-primary w-100" type="submit">
@@ -24,6 +36,76 @@
                             </button>
                         </div>
                     </form>
+
+                    <script>
+                    (function () {
+                        const input    = document.getElementById('districtInput');
+                        const dropdown = document.getElementById('districtDropdown');
+                        const arrow    = document.getElementById('dropdownArrow');
+                        const toggle   = document.getElementById('districtDropdownToggle');
+                        const items    = Array.from(dropdown.querySelectorAll('.district-option'));
+
+                        function showDropdown() {
+                            dropdown.style.display = 'block';
+                            arrow.classList.replace('bi-chevron-down', 'bi-chevron-up');
+                        }
+                        function hideDropdown() {
+                            dropdown.style.display = 'none';
+                            arrow.classList.replace('bi-chevron-up', 'bi-chevron-down');
+                        }
+
+                        // Filter on typing
+                        input.addEventListener('input', function () {
+                            const q = this.value.toLowerCase();
+                            let any = false;
+                            items.forEach(li => {
+                                const match = li.dataset.value.toLowerCase().includes(q);
+                                li.style.display = match ? '' : 'none';
+                                if (match) any = true;
+                            });
+                            any ? showDropdown() : hideDropdown();
+                        });
+
+                        // Toggle on arrow click
+                        toggle.addEventListener('click', function () {
+                            if (dropdown.style.display === 'none') {
+                                items.forEach(li => li.style.display = '');
+                                showDropdown();
+                                input.focus();
+                            } else {
+                                hideDropdown();
+                            }
+                        });
+
+                        // Select item
+                        items.forEach(li => {
+                            li.addEventListener('mousedown', function (e) {
+                                e.preventDefault();
+                                input.value = this.dataset.value;
+                                hideDropdown();
+                                document.getElementById('districtForm').submit();
+                            });
+                        });
+
+                        // Close on outside click
+                        document.addEventListener('click', function (e) {
+                            if (!input.contains(e.target) && !toggle.contains(e.target) && !dropdown.contains(e.target)) {
+                                hideDropdown();
+                            }
+                        });
+
+                        // Open on focus if has value
+                        input.addEventListener('focus', function () {
+                            const q = this.value.toLowerCase();
+                            if (q) {
+                                items.forEach(li => {
+                                    li.style.display = li.dataset.value.toLowerCase().includes(q) ? '' : 'none';
+                                });
+                                showDropdown();
+                            }
+                        });
+                    })();
+                    </script>
                 </div>
             </div>
 
